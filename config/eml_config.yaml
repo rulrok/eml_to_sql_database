@@ -1,0 +1,14 @@
+eml:
+  source_dir: ./sample_data
+  headers:
+    - From
+    - To
+    - Cc
+    - Bcc
+    - Subject
+    - Date
+    - Message-ID
+
+duckdb:
+  database: ./data/eml.duckdb
+  dataset: eml_data
