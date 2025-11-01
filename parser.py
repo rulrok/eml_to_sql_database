@@ -26,6 +26,10 @@ def _headers_lowercase_map(headers: Mapping[str, Any]) -> Dict[str, Any]:
     """Return a mapping of header names lowercased to their values."""
     return {k.lower(): v for k, v in headers.items()}
 
+def _dict_to_header_entries(headers_dict: Dict[str, Any]) -> list[Dict[str, Any]]:
+    """Convert a dictionary to a list of Header/Value entries."""
+    return [{"Header": k, "Value": v} for k, v in headers_dict.items()]
+
 def parse_eml(path: Path) -> EmailRecord | None:
     """Parse headers from an EML file using fast_mail_parser and return a flat record.
 
@@ -61,7 +65,7 @@ def parse_eml(path: Path) -> EmailRecord | None:
             "subject": email_obj.subject,
             "text": "\n".join(email_obj.text_plain),
             "text_html": "<br>".join(email_obj.text_html),
-            "headers": [all_headers],
-            "custom-headers": [custom_headers],
+            "headers": _dict_to_header_entries(standard_headers),
+            "custom-headers": _dict_to_header_entries(custom_headers),
         },
     )
