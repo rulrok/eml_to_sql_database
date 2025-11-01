@@ -2,16 +2,16 @@ from pathlib import Path
 import dlt
 import logging
 from typing import Iterable
-from parser import parse_eml_headers, EmailHeadersRecord
+from parser import parse_eml, EmailRecord
 
 @dlt.source(name="eml")
 def eml_source(eml_dir: str):
     eml_dir_path = Path(eml_dir)
 
     @dlt.resource(name="messages", write_disposition="merge", primary_key="message-id")
-    def messages() -> Iterable[EmailHeadersRecord]:
+    def messages() -> Iterable[EmailRecord]:
         for path in eml_dir_path.rglob("*.eml"):
-            result = parse_eml_headers(path)
+            result = parse_eml(path)
             if result:
                 yield result
             else:

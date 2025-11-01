@@ -6,7 +6,7 @@ from typing import Any, Dict, Mapping, TypedDict, cast
 from fast_mail_parser import parse_email, ParseError  # type: ignore
 
 
-class EmailHeadersRecord(TypedDict, total=False):
+class EmailRecord(TypedDict, total=False):
         """Typed shape for the parsed EML headers record.
 
         Notes:
@@ -27,7 +27,7 @@ def _headers_lowercase_map(headers: Mapping[str, Any]) -> Dict[str, Any]:
     """Return a mapping of header names lowercased to their values."""
     return {k.lower(): v for k, v in headers.items()}
 
-def parse_eml_headers(path: Path) -> EmailHeadersRecord | None:
+def parse_eml(path: Path) -> EmailRecord | None:
     """Parse headers from an EML file using fast_mail_parser and return a flat record.
 
     Contract:
@@ -52,7 +52,7 @@ def parse_eml_headers(path: Path) -> EmailHeadersRecord | None:
         k: v for k, v in all_headers.items() if k not in custom_headers
     }
 
-    return cast(EmailHeadersRecord, {
+    return cast(EmailRecord, {
         **standard_headers,
         "custom_headers": [custom_headers],
     })
