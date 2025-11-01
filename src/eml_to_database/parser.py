@@ -5,41 +5,7 @@ from typing import Any, Dict, List, Mapping
 import re
 import uuid
 
-
-def _decode_with_eml_parser(raw_bytes: bytes) -> Dict[str, Any]:
-    """Decode EML bytes using the eml_parser package.
-
-    Tries the class-based API first and falls back to the functional API
-    depending on the installed version.
-    """
-    try:
-        # Newer API
-        from eml_parser import EmlParser  # type: ignore
-
-        parser = EmlParser(
-            include_attachment_data=False,
-            include_raw_body=False,
-            parse_attachments=False,
-        )
-        return parser.decode_email_bytes(raw_bytes)
-    except Exception:
-        # Older API fallback
-        from eml_parser import eml_parser as eml_fn  # type: ignore
-
-        return eml_fn.decode_email_bytes(raw_bytes)
-
-
-def _get_headers_map(parsed: Mapping[str, Any]) -> Dict[str, Any]:
-    """Return headers mapping from parsed object regardless of key naming."""
-    headers: Dict[str, Any] = {}
-    if isinstance(parsed, Mapping):
-        # Common keys in eml_parser outputs
-        for key in ("header", "headers"):
-            value = parsed.get(key)  # type: ignore[index]
-            if isinstance(value, Mapping):
-                headers = dict(value)  # normalize to plain dict
-                break
-    return headers
+from fast_mail_parser import parse_email, ParseError  # type: ignore
 
 
 def _build_lookup(headers: Mapping[str, Any]) -> Dict[str, Any]:
@@ -53,7 +19,7 @@ def _build_lookup(headers: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def parse_eml_headers(path: Path, headers_to_extract: List[str]) -> Dict:
-    """Parse headers from an EML file using eml_parser and return a flat record.
+    """Parse headers from an EML file using fast_mail_parser and return a flat record.
 
     Contract:
     - Inputs: path to .eml file, list of header names to extract
@@ -61,15 +27,22 @@ def parse_eml_headers(path: Path, headers_to_extract: List[str]) -> Dict:
     - id: Message-ID if present, else a generated uuid4 string
     """
     path = Path(path)
-    raw = path.read_bytes()
 
-    parsed = _decode_with_eml_parser(raw)
-    all_headers = _get_headers_map(parsed)
+    # fast_mail_parser expects a text string; read as UTF-8 with replacement to be robust
+    try:
+        payload = path.read_text(encoding="utf-8", errors="replace")
+        email_obj = parse_email(payload)
+        all_headers_raw = getattr(email_obj, "headers", {}) or {}
+        all_headers = dict(all_headers_raw) if isinstance(all_headers_raw, Mapping) else {}
+    except ParseError:
+        # On parse failure, return minimal record with generated id and no headers
+        all_headers = {}
+        email_obj = None  # type: ignore
+
     lookup = _build_lookup(all_headers)
 
     def hget(name: str) -> Any | None:
         n = name.strip()
-        # try exact lower, dash/underscore variants and common capitalizations
         candidates = [
             n,
             n.lower(),

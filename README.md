@@ -14,10 +14,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-This project uses the `eml_parser` library to parse EML files (`pip install eml_parser[filemagic]`).
-On some Linux systems you may also need libmagic available; the `filemagic` extra usually handles it,
-but if you encounter errors about magic/file type detection, install your distro's `libmagic` package
-and re-install requirements.
+This project uses the `fast-mail-parser` library for high-performance EML parsing.
+Note: it builds a small Rust extension. If your environment lacks a recent Rust toolchain,
+install it with rustup (one-time):
+
+```bash
+curl -sSf https://sh.rustup.rs | sh -s -- -y
+. "$HOME/.cargo/env"
+```
+
+Then install Python requirements normally.
 
 ## Configure
 
