@@ -7,18 +7,11 @@ import uuid
 
 from fast_mail_parser import parse_email, ParseError  # type: ignore
 
+def _headers_lowercase_map(headers: Mapping[str, Any]) -> Dict[str, Any]:
+    """Return a mapping of header names lowercased to their values."""
+    return {k.lower(): v for k, v in headers.items()}
 
-def _build_lookup(headers: Mapping[str, Any]) -> Dict[str, Any]:
-    """Build a case-insensitive lookup for header names with dash/underscore variants."""
-    lu: Dict[str, Any] = {}
-    for k, v in headers.items():
-        k_l = str(k).lower()
-        lu[k_l] = v
-        lu[k_l.replace("-", "_")] = v
-    return lu
-
-
-def parse_eml_headers(path: Path, headers_to_extract: List[str]) -> Dict:
+def parse_eml_headers(path: Path) -> Dict | None:
     """Parse headers from an EML file using fast_mail_parser and return a flat record.
 
     Contract:
@@ -32,40 +25,18 @@ def parse_eml_headers(path: Path, headers_to_extract: List[str]) -> Dict:
     try:
         payload = path.read_text(encoding="utf-8", errors="replace")
         email_obj = parse_email(payload)
-        all_headers_raw = getattr(email_obj, "headers", {}) or {}
-        all_headers = dict(all_headers_raw) if isinstance(all_headers_raw, Mapping) else {}
+        all_headers = _headers_lowercase_map(email_obj.headers)
     except ParseError:
-        # On parse failure, return minimal record with generated id and no headers
-        all_headers = {}
-        email_obj = None  # type: ignore
-
-    lookup = _build_lookup(all_headers)
-
-    def hget(name: str) -> Any | None:
-        n = name.strip()
-        candidates = [
-            n,
-            n.lower(),
-            n.replace("_", "-").lower(),
-            n.replace("-", "_").lower(),
-            "message-id" if n.lower() in {"message_id", "message-id", "messageid", "message id"} else n.lower(),
-        ]
-        for c in candidates:
-            if c in lookup:
-                return lookup[c]
         return None
 
-    message_id = hget("Message-ID") or hget("Message_Id") or str(uuid.uuid4())
-
-    record: Dict[str, Any] = {
-        "id": message_id,
-        "path": str(path.resolve()),
-        "headers": all_headers,
+    custom_headers = {
+        k: v for k, v in all_headers.items() if k.startswith("x-")
+    }
+    standard_headers = {
+        k: v for k, v in all_headers.items() if k not in custom_headers
     }
 
-    for name in headers_to_extract:
-        value = hget(name)
-        key = re.sub(r"[^0-9a-zA-Z]+", "_", name).strip("_").lower()
-        record[key] = value
-
-    return record
+    return {
+        **standard_headers,
+        "custom_headers": [custom_headers],
+    }

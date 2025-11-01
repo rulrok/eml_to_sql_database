@@ -13,25 +13,12 @@ from .parser import parse_eml_headers
 def eml_source(eml_dir: str, headers: List[str]):
     eml_dir_path = Path(eml_dir)
 
-    # Provide type hints so columns are materialized even if empty in a batch
-    def _sanitize(h: str) -> str:
-        import re as _re
-        return _re.sub(r"[^0-9a-zA-Z]+", "_", h).strip("_").lower()
-
-    cols: Dict[str, Dict[str, str]] = {
-        "id": {"data_type": "text"},
-        "path": {"data_type": "text"},
-        "headers": {"data_type": "json"},
-    }
-    cols.update({
-        _sanitize(h): {"data_type": "text"}
-        for h in headers
-    })
-
-    @dlt.resource(name="messages", write_disposition="append", primary_key="id", columns=cols)
+    @dlt.resource(name="messages", write_disposition="merge", primary_key="MESSAGE-ID")
     def messages() -> Iterable[dict]:
         for path in eml_dir_path.rglob("*.eml"):
-            yield parse_eml_headers(path, headers)
+            result = parse_eml_headers(path)
+            if result:
+                yield result
 
     return (messages,)
 
