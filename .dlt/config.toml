@@ -6,4 +6,4 @@ destination_name="messages"
 create_indexes="True"
 
 [schema]
-naming="duck_case"
+naming="snake_case"
