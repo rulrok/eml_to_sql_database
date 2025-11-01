@@ -29,8 +29,7 @@ def load_from_dir(config_path: Path | str) -> object:
     pipeline = dlt.pipeline(
         pipeline_name="eml_to_duckdb",
         destination="duckdb",
-        dataset_name=cfg.duckdb.dataset,
-        dev_mode=True,
+        dataset_name=cfg.duckdb.dataset
     )
 
     source = eml_source(str(cfg.eml.source_dir), cfg.eml.headers)
