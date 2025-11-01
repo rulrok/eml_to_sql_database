@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import dateparser
 from pathlib import Path
 from typing import Any, Dict, Mapping, TypedDict, cast
 
@@ -52,7 +52,14 @@ def parse_eml(path: Path) -> EmailRecord | None:
         k: v for k, v in all_headers.items() if k not in custom_headers
     }
 
+    message_id = standard_headers.get("message-id")
+
     return cast(EmailRecord, {
-        **standard_headers,
-        "custom_headers": [custom_headers],
+        "message-id": message_id,
+        "date": dateparser.parse(email_obj.date),
+        "subject": email_obj.subject,
+        "text": '\n'.join(email_obj.text_plain),
+        "text_html": '<br>'.join(email_obj.text_html),
+        "headers": [all_headers],
+        "custom-headers": [custom_headers],
     })
