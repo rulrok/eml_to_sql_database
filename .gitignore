@@ -1,4 +1,4 @@
-/data/*
+**/*.duckdb
 **/*.pyc
 *.eml
 /eml_files/*

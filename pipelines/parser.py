@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Mapping
-import re
-import uuid
+from typing import Any, Dict, Mapping
 
 from fast_mail_parser import parse_email, ParseError  # type: ignore
 
