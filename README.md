@@ -1,56 +1,39 @@
-# EML to DuckDB (headers only MVP)
+# EML to SQL Database
 
-This project ingests `.eml` email files and loads selected headers into a DuckDB database using [dlt](https://github.com/dlt-hub/dlt).
+Parse `.eml` email files and load into a local DuckDB database using [dlt](https://github.com/dlt-hub/dlt).
 
-Future work: parse message body and attachments. For now, we only extract headers you configure.
+This project helps to perform data-analysis in a large quantity of dumped emails.
 
-## Setup
-
-1. Create and activate a virtual environment (already created as `.venv`).
-2. Install dependencies:
+## Install
 
 ```bash
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-This project uses the `fast-mail-parser` library for high-performance EML parsing.
-Note: it builds a small Rust extension. If your environment lacks a recent Rust toolchain,
-install it with rustup (one-time):
+Note: `fast-mail-parser` may compile a small Rust extension. If you hit build errors, install a Rust toolchain (e.g., via rustup) and reinstall.
 
-```bash
-curl -sSf https://sh.rustup.rs | sh -s -- -y
-. "$HOME/.cargo/env"
-```
+## Use
 
-Then install Python requirements normally.
-
-## Configure
-
-Edit `config/eml_config.yaml`:
-- `eml.source_dir`: directory containing `.eml` files
-- `eml.headers`: list of headers to extract into top-level columns
-- `duckdb.database`: path to the DuckDB file that will be created
-- `duckdb.dataset`: dataset/schema name inside DuckDB managed by dlt
-
-## Run (dlt project style)
-
-Use the pipeline script under `pipelines/`:
+1) Drop your `.eml` files into `eml_files/`
+2) Run the loader:
 
 ```bash
 source .venv/bin/activate
-python pipelines/eml_to_duckdb.py --config config/eml_config.yaml
+python eml_to_duckdb.py
 ```
 
-On completion, open the DuckDB file to inspect (dataset name may have a suffix in dev mode):
+This will create/update a DuckDB database at the root of the project.
 
+Open it with DuckDB and query the `emails.messages` table, for example:
 ```bash
-duckdb data/eml.duckdb
--- Inside DuckDB CLI:
-SELECT * FROM eml_data_messages LIMIT 5;
+duckdb message.duckdb
 ```
 
-## Development notes
-- The `messages` table contains a JSON-like `headers` column with all headers plus dedicated columns for the configured ones (e.g., `subject`, `from`, `to`).
-- The primary key is `id` (uses `Message-ID` if present, otherwise a generated UUID).
-- Columns are type-hinted to ensure they are materialized even if an individual batch contains only nulls for some headers (e.g., `cc`, `bcc`).
+Example loading:
+```sql
+SELECT * FROM emails.messages LIMIT 5;
+SELECT * FROM emails.messages__headers LIMIT 5;
+SELECT * FROM emails.messages__custom_headers LIMIT 5;
+```
