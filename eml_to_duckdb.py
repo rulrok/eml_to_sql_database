@@ -23,7 +23,8 @@ def main() -> None:
 
     pipeline = dlt.pipeline(
         pipeline_name="emails",
-        destination="duckdb"
+        destination="duckdb",
+        dataset_name="emails"
     )
 
     source = eml_source("eml_files")
