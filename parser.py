@@ -1,27 +1,26 @@
 from __future__ import annotations
 import dateparser
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Mapping, TypedDict, cast
 
 from fast_mail_parser import parse_email, ParseError  # type: ignore
 
 
-class EmailRecord(TypedDict, total=False):
-        """Typed shape for the parsed EML headers record.
-
-        Notes:
-        - The returned dict includes all standard headers as flat string keys
-            (for example: "subject", "to", "date", "message-id", etc.).
-        - In addition, it always contains a "custom_headers" key that groups any
-            vendor-specific headers (those starting with "x-") as a single-item list
-            containing a dict of those headers. This mirrors the runtime structure
-            produced by ``parse_eml_headers``.
-        - Extra standard header keys are allowed at runtime; they are not explicitly
-            enumerated here and will be typed as ``str -> Any`` by type checkers.
-        """
-
-        # A single-item list containing a mapping of all custom (x-*) headers.
-        custom_headers: list[Dict[str, Any]]
+# Use functional TypedDict to allow hyphenated keys like "message-id" and "custom-headers".
+EmailRecord = TypedDict(
+    "EmailRecord",
+    {
+        "message-id": str | None,
+        "date": datetime | None,
+        "subject": str | None,
+        "text": str,
+        "text_html": str,
+        "headers": list[Dict[str, Any]],
+        "custom-headers": list[Dict[str, Any]],
+    },
+    total=False,
+)
 
 def _headers_lowercase_map(headers: Mapping[str, Any]) -> Dict[str, Any]:
     """Return a mapping of header names lowercased to their values."""
@@ -54,12 +53,15 @@ def parse_eml(path: Path) -> EmailRecord | None:
 
     message_id = standard_headers.get("message-id")
 
-    return cast(EmailRecord, {
-        "message-id": message_id,
-        "date": dateparser.parse(email_obj.date),
-        "subject": email_obj.subject,
-        "text": '\n'.join(email_obj.text_plain),
-        "text_html": '<br>'.join(email_obj.text_html),
-        "headers": [all_headers],
-        "custom-headers": [custom_headers],
-    })
+    return cast(
+        EmailRecord,
+        {
+            "message-id": message_id,
+            "date": dateparser.parse(email_obj.date),
+            "subject": email_obj.subject,
+            "text": "\n".join(email_obj.text_plain),
+            "text_html": "<br>".join(email_obj.text_html),
+            "headers": [all_headers],
+            "custom-headers": [custom_headers],
+        },
+    )
