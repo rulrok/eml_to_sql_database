@@ -1,2 +1,5 @@
 /data/*
 **/*.pyc
+*.eml
+/eml_files/*
+!/eml_files/.gitkeep

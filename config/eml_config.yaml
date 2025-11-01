@@ -1,5 +1,5 @@
 eml:
-  source_dir: ./sample_data
+  source_dir: ./eml_files
   headers:
     - From
     - To
