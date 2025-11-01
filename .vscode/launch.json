@@ -9,7 +9,7 @@
             "name": "EML pipeline",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/pipelines/eml_to_duckdb.py",
+            "program": "${workspaceFolder}/eml_to_duckdb.py",
             "console": "integratedTerminal"
         }
     ]
