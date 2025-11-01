@@ -3,9 +3,14 @@ import dateparser
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Mapping, TypedDict, cast
+import re
 
 from fast_mail_parser import parse_email, ParseError  # type: ignore
 
+# Precompiled regex to match timezone offset followed by parentheses block
+# E.g., " -0700 (PDT)" at the end of date strings
+# Removing this helps dateparser handle certain date formats
+_TIMEZONE_PAREN_PATTERN = re.compile(r' (\(.+?\))$')
 
 # Use functional TypedDict to allow hyphenated keys like "message-id" and "custom-headers".
 EmailRecord = TypedDict(
@@ -57,11 +62,23 @@ def parse_eml(path: Path) -> EmailRecord | None:
 
     message_id = standard_headers.get("message-id")
 
+    # Parse date from email object or fall back to date header
+    date = None
+    if email_obj.date and email_obj.date.strip():
+        # Replace (TMZ) at the end of string to help dateparser
+        cleaned_date = email_obj.date.strip()
+        cleaned_date = _TIMEZONE_PAREN_PATTERN.sub('', cleaned_date).strip()
+        date = dateparser.parse(cleaned_date, settings={'RETURN_AS_TIMEZONE_AWARE': True, 'TO_TIMEZONE': 'UTC'})
+    elif "date" in all_headers:
+        date_header = all_headers["date"]
+        if isinstance(date_header, str) and date_header.strip():
+            date = dateparser.parse(date_header)
+
     return cast(
         EmailRecord,
         {
             "message-id": message_id,
-            "date": dateparser.parse(email_obj.date),
+            "date": date,
             "subject": email_obj.subject,
             "text": "\n".join(email_obj.text_plain),
             "text_html": "<br>".join(email_obj.text_html),
