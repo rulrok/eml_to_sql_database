@@ -14,6 +14,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+This project uses the `eml_parser` library to parse EML files (`pip install eml_parser[filemagic]`).
+On some Linux systems you may also need libmagic available; the `filemagic` extra usually handles it,
+but if you encounter errors about magic/file type detection, install your distro's `libmagic` package
+and re-install requirements.
+
 ## Configure
 
 Edit `config/eml_config.yaml`:
@@ -42,3 +47,4 @@ SELECT * FROM eml_data_messages LIMIT 5;
 ## Development notes
 - The `messages` table contains a JSON-like `headers` column with all headers plus dedicated columns for the configured ones (e.g., `subject`, `from`, `to`).
 - The primary key is `id` (uses `Message-ID` if present, otherwise a generated UUID).
+- Columns are type-hinted to ensure they are materialized even if an individual batch contains only nulls for some headers (e.g., `cc`, `bcc`).
